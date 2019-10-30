@@ -41,6 +41,28 @@ $database->setInitCommand('SET NAMES latin1');
 
 ## Methods overview
 
+### Fetching single records
+
+- **fetch**: Gets a record's data from a custom SQL statement.
+- **fetchData**: Gets a record's data, building the SQL statement dynamically.
+- **fetchKey**: Gets a record's data, and returns the specified column value.
+
+### Fetching multiple records
+
+- **fetchAll**: Gets all entries from a custom SQL statement.
+- **fetchAllKey**: Gets an indexed array with a single column's values from a custom SQL statement.
+
+### Deleting records
+
+- **delete**: Deletes records using a custom SQL statement.
+- **deleteRecords**: Deletes records, building the SQL statement dynamically.
+
+### Transactions
+
+- **startTransaction**: Starts a transaction.
+- **commitTransaction**: Commits an active transaction.
+- **rollbackTransaction**: Rolls back an active transaction.
+
 ### Table-related
 
 - **columnExists**: Check if a specific column exists in a table.
@@ -48,6 +70,21 @@ $database->setInitCommand('SET NAMES latin1');
 - **dropTables**: Drops all tables in the database.
 - **tableExists**: Checks whether the specified table exists in the database.
 - **isAutoincrementColumn**: Checks whether a column is an auto increment column.
+
+### Debugging and logging
+
+- **countQueries**: Counts the amount of queries executed up to this point (requires query tracking).
+- **countSelectQueries**: Counts the amount of SELECT queries executed up to this point (requires query tracking).
+- **countWriteQueries**: Counts the amount of database write operations executed up to this point (requires query tracking).
+- **enableDebugging**: Enables query debugging, which will echo all SQL statements after this call.
+- **enableQueryTracking**: Enables saving all queries to memory to be able to access them later.
+- **disableDebugging**: Disable debugging again after enabling it.
+- **disableQueryTracking**: Disables query tracking again after enabling it.
+- **getSelectQueries**: Retrieves all SELECT SQL statements executed up to this point (requires query tracking).
+- **getWriteQueries**: Retrieves all write operation SQL statements executed up to this point (requires query tracking).
+- **getQueryCount**: Returns the total amount of queries executed up to this point.
+- **getQueries**: Retrieves all SQL statements executed up to this point (requires query tracking).
+- **setLogCallback**: Sets a callback to call for handling log messages.
 
 ## Event handling
 
