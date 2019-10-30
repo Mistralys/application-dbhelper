@@ -138,7 +138,7 @@ class DBHelper_Database
                 throw new DBHelper_Exception(
                     'Cannot connect to the database: The PDO MYSQL driver is missing.',
                     null,
-                    DBHelper::ERROR_CONNECTING_NO_DRIVER,
+                    DBHelper::ERROR_CONNECTING_NO_DRIVER
                 );
             }
             
@@ -151,7 +151,7 @@ class DBHelper_Database
                     $this->getPort(),
                     $e->getMessage()
                 ),
-                DBHelper::ERROR_CONNECTING,
+                DBHelper::ERROR_CONNECTING
             );
         }
         
