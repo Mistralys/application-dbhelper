@@ -39,20 +39,6 @@ the connection is established. Typically, this is used to set the encoding of th
 $database->setInitCommand('SET NAMES latin1');
 ```
 
-### Event handling
-
-There are currently two events that listeners can be added to: 
-
-1. `Init`: Called when initialization is complete, and queries can be run.
-2. `OnBeforeWriteOperation`: Called whenever a write operation is about to be executed.
-
-Both events have their own method to add callabacks as event listeners.
-
-```php
-DBHelper::onInit('handle_initDatabase');
-DBHelper::onBeforeWriteOperation('handle_beforeWriteOperation');
-```
-
 ## Methods overview
 
 ### Table-related
@@ -62,6 +48,39 @@ DBHelper::onBeforeWriteOperation('handle_beforeWriteOperation');
 - **dropTables**: Drops all tables in the database.
 - **tableExists**: Checks whether the specified table exists in the database.
 - **isAutoincrementColumn**: Checks whether a column is an auto increment column.
+
+## Event handling
+
+There are currently two events that listeners can be added to: 
+
+1. `Init`: Called when initialization is complete, a connection to the database was successful, and queries can be run.
+2. `OnBeforeWriteOperation`: Called whenever a write operation is about to be executed. Allows cancelling the operation.
+
+Both events have their own method to add callback functions or methods as event listeners.
+
+```php
+DBHelper::onInit('handle_initDatabase');
+DBHelper::onBeforeWriteOperation('handle_beforeWriteOperation');
+```
+
+The callback function always gets the event object as first parameter.
+Additional arguments can optionally be specified in the arguments parameter:
+
+```php
+ DBHelper::onInit(
+     'handle_initDatabase', 
+     array(
+         'foo', 
+         'bar'
+     )
+);
+ 
+function handle_initDatabase(\AppDB\DBHelper_Event $event, $param1, $param2)
+{
+    // $param1 = 'foo'
+    // $param2 = 'bar'
+}
+```
 
 ## Origin
 
