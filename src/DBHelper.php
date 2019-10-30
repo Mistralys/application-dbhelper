@@ -6,6 +6,8 @@
  * @see DBHelper
  */
 
+declare(strict_types=1);
+
 namespace AppDB;
 
 /**
@@ -94,7 +96,32 @@ class DBHelper
     */
     protected static $activeQuery;
     
-    protected static $options = array();
+   /**
+    * @var array
+    */
+    protected static $options = null;
+    
+    /**
+     * @var string
+     */
+    protected static $selectedDB = null;
+    
+    /**
+     * @var \PDO
+     */
+    protected static $activeDB = null;
+    
+    /**
+     * @var bool
+     */
+    protected static $initDone = false;
+    
+   /**
+    * Caches column names that were checked to exist.
+    * @var array
+    * @see DBHelper::columnExists()
+    */
+    protected static $cachedColumnExist = array();
     
     /**
      * Executes a query string with the specified variables. Uses
@@ -102,38 +129,57 @@ class DBHelper
      * PDOStatement->execute() method. If the query fails, the
      * error information can be accessed via {@link getErrorMessage()}.
      *
-     * @param string $statement The full SQL query to run with placeholders for variables
+     * @param int $operationType The type of operation to execute.
+     * @param string $sqlStatement The full SQL query to run with placeholders for variables
      * @param array $variables Associative array with placeholders and values to replace in the query
+     * @param bool $exceptionOnError Whether to trigger an exception if an error occurrs.
      * @return boolean
+     * 
      * @see getErrorMessage()
      * @see getErrorCode()
+     * 
+     * @see DBHelper::ERROR_PREPARING_QUERY
+     * @see DBHelper::ERROR_EXECUTING_QUERY
      */
-    public static function execute($operationType, $statement, $variables = array(), $exceptionOnError=true)
+    public static function execute(int $operationType, string $sqlStatement, array $variables = array(), bool $exceptionOnError=true) : bool
     {
-        if(self::getOption('track-queries') === true) {
+        self::init();
+        
+        if(self::isQueryTrackingEnabled()) {
             self::$startTime = microtime(true);
         }
 
-        self::$activeQuery = array($statement, $variables);
+        self::$activeQuery = array($sqlStatement, $variables);
         
         if(DBHelper_OperationTypes::isWriteOperation($operationType) && self::hasListener('BeforeDBWriteOperation')) {
-            $event = self::triggerEvent('BeforeDBWriteOperation', array($operationType, $statement, $variables));
+            $event = self::triggerEvent('BeforeDBWriteOperation', array($operationType, $sqlStatement, $variables));
             if($event->isCancelled()) {
                 return true;
             }
         }
         
-        try{
-            $stmt = self::$activeDB->prepare($statement);
-            if (!$stmt) {
+        try
+        {
+            $stmt = self::$activeDB->prepare($sqlStatement);
+            
+            if(!$stmt) 
+            {
+                if(!$exceptionOnError) {
+                    return false;
+                }
+                
                 self::throwException(
-                    self::ERROR_PREPARING_QUERY, 
+                    self::ERROR_PREPARING_QUERY,
                     'Could not prepare query'
                 );
             }
         } 
         catch(\PDOException $e)
         {
+            if(!$exceptionOnError) {
+                return false;
+            }
+            
             self::throwException(
                 self::ERROR_PREPARING_QUERY, 
                 'Could not prepare query', 
@@ -150,17 +196,30 @@ class DBHelper
             }
         }
         
-        try{
+        try
+        {
             $result = self::$activeStatement->execute($variables);
-            if (!$result && $exceptionOnError) {
+            
+            if(!$result)
+            {
+                if(!$exceptionOnError) {
+                    return false;
+                }
+                
                 self::throwException(
                     self::ERROR_EXECUTING_QUERY,
                     'Query execution failed'
                 );
             }
+
+            self::$queryCount++;
         } 
         catch(\PDOException $e)
         {
+            if(!$exceptionOnError) {
+                return false;
+            }
+            
             self::throwException(
                 self::ERROR_EXECUTING_QUERY, 
                 'Query execution failed',
@@ -171,35 +230,35 @@ class DBHelper
 
         return $result;
     }
-
-    static protected $queryLogging = false;
-
-    /**
-     * Runs an insert query and returns the insert ID if applicable.
-     * Note that this method requires a full INSERT query, it does
-     * not automate anything. The only difference to the {@link execute()}
-     * method is that it returns the insert ID.
-     *
-     * For tables that have no autoincrement fields, this will return
-     * a null value. As it triggers an exception in all cases something
-     * could go wrong, there is no need to check the return value of
-     * this method.
-     *
-     * @param string $statement
-     * @param array $variables
-     * @throws DBHelper_Exception
-     * @return string
-     */
-    public static function insert($statement, $variables = array())
+    
+   /**
+    * Runs an insert query and returns the insert ID if applicable.
+    * Note that this method requires a full INSERT query, it does
+    * not automate anything. The only difference to the {@link execute()}
+    * method is that it returns the insert ID.
+    *
+    * For tables that have no autoincrement fields, this will return
+    * a null value. As it triggers an exception in all cases something
+    * could go wrong, there is no need to check the return value of
+    * this method.
+    *
+    * @param string $sqlStatement
+    * @param array $variables
+    * @throws DBHelper_Exception
+    * @return string The inserted ID.
+    * 
+    * @see DBHelper::ERROR_INSERTING
+    */
+    public static function insert(string $sqlStatement, array $variables = array()) : string
     {
-        if (!self::executeAndRegister(DBHelper_OperationTypes::TYPE_INSERT, $statement, $variables, false)) {
-            self::throwException(
-                self::ERROR_INSERTING,
-                'Failed inserting a record'
-            );
+        if(self::executeAndRegister(DBHelper_OperationTypes::TYPE_INSERT, $sqlStatement, $variables, false)) {
+            return self::getDB()->lastInsertId();
         }
         
-        return self::getDB()->lastInsertId();
+        self::throwException(
+            self::ERROR_INSERTING,
+            'Failed inserting a record'
+        );
     }
 
     /**
@@ -213,7 +272,7 @@ class DBHelper
      */
     protected static function registerQuery($operationType, $statement, $variables=array(), $result)
     {
-        if (self::$queryLogging === true) {
+        if (self::isQueryLoggingEnabled()) {
             self::log(self::getSQL());
         }
         
@@ -222,7 +281,6 @@ class DBHelper
         }
 
         if(self::isQueryTrackingEnabled()) {
-            self::$queryCount++;
             $time = microtime(true)-self::$startTime;
             self::$queries[] = array($statement, $variables, $time, $operationType);
         } 
@@ -314,17 +372,17 @@ class DBHelper
         return null;
     }
 
-    /**
-     * Runs an update query. This is an alias for the {@link execute()}
-     * method, which exists for semantic purposes and the possibility
-     * to add specific functionality at a later time. It is recommended
-     * to use this method if you run UPDATE queries.
-     *
-     * @param string $statement The full SQL query to run with placeholders for variables
-     * @param array $variables Associative array with placeholders and values to replace in the query
-     * @return boolean
-     */
-    public static function update($statement, $variables = array())
+   /**
+    * Runs an update query. This is an alias for the {@link execute()}
+    * method, which exists for semantic purposes and the possibility
+    * to add specific functionality at a later time. It is recommended
+    * to use this method if you run UPDATE queries.
+    *
+    * @param string $statement The full SQL query to run with placeholders for variables
+    * @param array $variables Associative array with placeholders and values to replace in the query
+    * @return boolean
+    */
+    public static function update(string $statement, array $variables = array()) : bool
     {
         return self::executeAndRegister(DBHelper_OperationTypes::TYPE_UPDATE, $statement, $variables);
     }
@@ -332,28 +390,30 @@ class DBHelper
    /**
     * Executes the query and registers it internally.
     * 
-    * @param string $statement
+    * @param int $operationType The type of operation to execute.
+    * @param string $sqlStatement
     * @param array $variables
+    * @param bool $exceptionOnError Whether to trigger an exception if an error occurrs.
     * @return boolean
     */
-    protected static function executeAndRegister($operationType, $statement, $variables=array(), $exceptionOnError=true)
+    protected static function executeAndRegister(int $operationType, string $sqlStatement, array $variables=array(), bool $exceptionOnError=true) : bool
     {
-        $result = self::execute($operationType, $statement, $variables, $exceptionOnError);
-        self::registerQuery($operationType, $statement, $variables, $result);
+        $result = self::execute($operationType, $sqlStatement, $variables, $exceptionOnError);
+        self::registerQuery($operationType, $sqlStatement, $variables, $result);
         return $result;
     }
 
-    /**
-     * Runs a delete query. This is an alias for the {@link execute()}
-     * method, which exists for semantic purposes and the possibility
-     * to add specific functionality at a later time. It is recommended
-     * to use this method if you run DELETE queries.
-     *
-     * @param string $statement The full SQL query to run with placeholders for variables
-     * @param array $variables Associative array with placeholders and values to replace in the query
-     * @return boolean
-     */
-    public static function delete($statement, $variables = array())
+   /**
+    * Runs a delete query. This is an alias for the {@link execute()}
+    * method, which exists for semantic purposes and the possibility
+    * to add specific functionality at a later time. It is recommended
+    * to use this method if you run DELETE queries.
+    *
+    * @param string $statement The full SQL query to run with placeholders for variables
+    * @param array $variables Associative array with placeholders and values to replace in the query
+    * @return boolean
+    */
+    public static function delete(string $statement, array $variables = array()) : bool
     {
         return self::executeAndRegister(DBHelper_OperationTypes::TYPE_DELETE, $statement, $variables);
     }
@@ -365,13 +425,13 @@ class DBHelper
      * @throws DBHelper_Exception
      * @return null|array
      */
-    public static function fetch($statement, $variables = array())
+    public static function fetch(string $statement, array $variables = array()) :?array
     {
         self::executeAndRegister(DBHelper_OperationTypes::TYPE_SELECT, $statement, $variables);
         
         $fetch = self::$activeStatement->fetch(\PDO::FETCH_ASSOC);
         
-        if ($fetch === false) {
+        if($fetch === false) {
             $fetch = null;
         }
         
@@ -626,7 +686,17 @@ class DBHelper
         return self::countQueries(DBHelper_OperationTypes::getWriteTypes());
     }
     
-    public static function countQueries($types=null)
+   /**
+    * Counts how many queries were executed while 
+    * query tracking was enabled, up to this point.
+    * Any queries executed before query tracking was
+    * enabled will be excluded from this count.
+    * 
+    * @param array $types
+    * @return int
+    * @see DBHelper::getQueryCount()
+    */
+    public static function countQueries(array $types=array()) : int
     {
         if(empty($types)) {
             return count(self::$queries);
@@ -668,7 +738,7 @@ class DBHelper
      * @throws DBHelper_Exception
      * @return boolean
      */
-    public static function truncate($tableName)
+    public static function truncate(string $tableName)
     {
         $query = 'TRUNCATE TABLE `' . $tableName . '`';
         return self::executeAndRegister(DBHelper_OperationTypes::TYPE_TRUNCATE, $query);
@@ -768,17 +838,21 @@ class DBHelper
     }
 
    /**
-    * @var string
+    * Initializes the helper: connects to the
+    * database, and triggers the <code>Init</code>
+    * event.
+    * 
+    * @throws DBHelper_Exception
+    * @see DBHelper::onInit()
+    * 
+    * @see DBHelper::ERROR_NO_DATABASES_ADDED
     */
-    protected static $selectedDB = null;
-
-   /**
-    * @var \PDO
-    */
-    protected static $activeDB = null;
-
-    public static function init()
+    public static function init() : void
     {
+        if(self::$initDone) {
+            return;
+        }
+        
         if(empty(self::$databases))
         {
             throw new DBHelper_Exception(
@@ -790,9 +864,20 @@ class DBHelper
         
         DBHelper_OperationTypes::init();
         
-        self::$activeDB = self::getDB();
+        self::selectDatabase(self::$selectedDB);
+        self::$initDone = true;
         
         self::triggerEvent('Init');
+    }
+    
+   /**
+    * Checks whether the helper has been initialized yet.
+    * @return bool
+    * @see DBHelper::init()
+    */
+    public static function isInitialized() : bool
+    {
+        return self::$initDone;
     }
     
    /**
@@ -984,18 +1069,25 @@ class DBHelper
     * 
     * @see DBHelper::ERROR_CANNOT_SELECT_UNKNOWN_DATABASE
     */
-    public function selectDatabase(string $id) : void
+    public static function selectDatabase(string $id) : void
     {
-        self::$selectedDB = $id;
-        
-        if(!isset(self::$databases[$id])) 
-        {
-            throw new DBHelper_Exception(
-                sprintf('Cannot select database [%s]: it has not been added.', $id),
-                null,
-                self::ERROR_CANNOT_SELECT_UNKNOWN_DATABASE
-            );
+        if(isset(self::$databases[$id])) {
+            self::$selectedDB = $id;
+            self::$activeDB = self::getDB();
+            return;
         }
+        
+        throw new DBHelper_Exception(
+            sprintf(
+                'Cannot select database [%s], no such database has been added.',
+                $id
+            ),
+            sprintf(
+                'Available databases are [%s].',
+                implode(', ', array_keys(self::$databases))
+            ),
+            self::ERROR_CANNOT_SELECT_UNKNOWN_DATABASE
+        );
     }
 
     /**
@@ -1320,20 +1412,20 @@ class DBHelper
         self::$logCallback = $callback;
     }
 
-    public static function countAffectedRows()
+   /**
+    * Counts affected rows after an operation. Will return
+    * -1 if no query has been run.
+    * 
+    * @return int
+    */
+    public static function countAffectedRows() : int
     {
-        if (!isset(self::$activeStatement)) {
-            throw new DBHelper_Exception(
-                'No active statement present',
-                'Cannot retrieve affected rows if no active statement is present.',
-                self::ERROR_NO_ACTIVE_STATEMENT
-            );
+        if(isset(self::$activeStatement)) {
+            return self::$activeStatement->rowCount();
         }
-
-        return self::$activeStatement->rowCount();
+        
+        return -1;
     }
-    
-    protected static $cachedColumnExist = array();
     
    /**
     * Checks whether the specified column exists in the target table.
@@ -1342,7 +1434,7 @@ class DBHelper
     * @param string $columnName
     * @return boolean
     */
-    public static function columnExists($tableName, $columnName)
+    public static function columnExists(string $tableName, string $columnName) : bool
     {
         $key = $tableName.'.'.$columnName;
         if(isset(self::$cachedColumnExist[$key])) {
@@ -1695,8 +1787,14 @@ class DBHelper
         return self::addListener('BeforeDBWriteOperation', $eventCallback, $data);
     }
     
-    public static function reset()
+   /**
+    * Reinitializes the helper completely, including
+    * the initial configuration. Mainly used in the 
+    * testsuite.
+    */
+    public static function reset() : void
     {
+        self::$initDone = false;
         self::$activeDB = null;
         self::$databases = array();
         self::$selectedDB = null;
@@ -1706,23 +1804,42 @@ class DBHelper
         self::$queries = array();
         self::$logCallback = null;
         self::$queryCount = 0;
-        self::$queryLogging = false;
         self::$activeStatement = null;
         self::$activeQuery = null;
         self::$startTime = null;
-        
-        self::$options = array(
+        self::$options = null;
+    }
+    
+    protected static function getDefaultOptions()
+    {
+        return array(
             'track-queries' => false,
+            'log-queries' => false,
             'debugging' => false
         );
     }
+    
+    public static function enableQueryLogging(bool $enable=true) : void
+    {
+        self::setOption('log-queries', $enable);
+    }
 
-    public static function enableQueryTracking(bool $enable=true)
+    public static function disableQueryLogging() : void
+    {
+        self::enableQueryLogging(false);
+    }
+    
+    public static function isQueryLoggingEnabled() : bool
+    {
+        return self::getOption('log-queries') === true;
+    }
+    
+    public static function enableQueryTracking(bool $enable=true) : void
     {
         self::setOption('track-queries', $enable);
     }
     
-    public static function disableQueryTracking()
+    public static function disableQueryTracking() : void
     {
         self::enableQueryTracking(false);
     }
@@ -1732,8 +1849,19 @@ class DBHelper
         return self::getOption('track-queries') === true;
     }
     
-    protected static function setOption(string $name, $value)
+   /**
+    * Sets an internal option.
+    * 
+    * @param string $name
+    * @param mixed $value
+    * @throws DBHelper_Exception
+    * 
+    * @see DBHelper::ERROR_CANNOT_SET_UNKNOWN_OPTION
+    */
+    protected static function setOption(string $name, $value) : void
     {
+        self::initOptions();
+        
         if(isset(self::$options[$name])) 
         {
             self::$options[$name] = $value;
@@ -1749,11 +1877,21 @@ class DBHelper
     
     protected static function getOption(string $name)
     {
+        self::initOptions();
+        
         if(isset(self::$options[$name])) {
             return self::$options[$name];
         }
         
         return null;
+    }
+    
+    protected static function initOptions()
+    {
+        if(!isset(self::$options))
+        {
+            self::$options = self::getDefaultOptions();
+        }
     }
 }
     
