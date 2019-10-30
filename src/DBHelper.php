@@ -66,6 +66,8 @@ class DBHelper
     
     const ERROR_NO_DATABASES_ADDED = 33871021;
     
+    const ERROR_NO_DATABASE_SELECTED = 33871022;
+    
     /**
      * Counter for the amount of queries run during a request.
      * @var int
@@ -385,7 +387,7 @@ class DBHelper
     * @param array $columns The columns to fetch. Defaults to all columns if empty.
     * @return NULL|array
     */
-    public static function fetchData($table, $where=array(), $columns=array())
+    public static function fetchData($table, $where=array(), $columns=array()) : ?array
     {
         $select = '*';
         if(!empty($columns)) 
@@ -513,10 +515,17 @@ class DBHelper
             }
         }
         
-        $message = 
-        'DB error message: [' . $errorMessage . ']<br/>' .
-        'Database: '.APP_DB_USER . '@' .APP_DB_NAME . ' on '.APP_DB_HOST.'<br/>';
+        $database = self::getSelectedDatabase();
         
+        $message = sprintf(
+            'DB error message: [%s]<br/>' .
+            'Database: %s@%s on %s<br/>',
+            $errorMessage,
+            $database->getUsername(),
+            $database->getName(),
+            $database->getHost()
+        );
+            
         $sql = self::getSQLHighlighted();
         if(!empty($sql)) {
             $info .=
@@ -758,8 +767,14 @@ class DBHelper
         return self::executeAndRegister(DBHelper_OperationTypes::TYPE_TRANSACTION, 'ROLLBACK');
     }
 
+   /**
+    * @var string
+    */
     protected static $selectedDB = null;
 
+   /**
+    * @var \PDO
+    */
     protected static $activeDB = null;
 
     public static function init()
@@ -992,9 +1007,32 @@ class DBHelper
      */
     public static function getDB()
     {
-        $database = self::$databases[self::$selectedDB];
+        $database = self::getSelectedDatabase();
 
         return $database->connect();
+    }
+    
+   /**
+    * Retrieves the currently selected database, provided
+    * at least one database has been added, or a specific
+    * database has been selected.
+    * 
+    * @throws DBHelper_Exception
+    * @return DBHelper_Database
+    * 
+    * @see DBHelper::ERROR_NO_DATABASE_SELECTED
+    */
+    public static function getSelectedDatabase() : DBHelper_Database
+    {
+        if(isset(self::$databases[self::$selectedDB])) {
+            return self::$databases[self::$selectedDB];
+        }
+        
+        throw new DBHelper_Exception(
+            'Cannot get selected database: no database selected.',
+            null,
+            self::ERROR_NO_DATABASE_SELECTED
+        );
     }
 
     /**
@@ -1313,6 +1351,8 @@ class DBHelper
         
         self::$cachedColumnExist[$key] = false;
         
+        $database = self::getSelectedDatabase();
+        
     	$info = DBHelper::fetch(
     		"SELECT
 				`COLUMN_NAME`
@@ -1325,7 +1365,7 @@ class DBHelper
 			AND
 				`COLUMN_NAME` = :columnname",
     		array(
-    			'dbname' => APP_DB_NAME,
+    			'dbname' => $database->getName(),
     			'tablename' => $tableName,
     			'columnname' => $columnName
     		)
@@ -1617,11 +1657,19 @@ class DBHelper
     * fields and values, connected by <code>AND</code>. The
     * bound variable names match the field names.
     *  
+    * If no parameters are specified in the array, returns
+    * a string <code>1</code> (one) so it can always be used
+    * in a WHERE statement.
+    *  
     * @param array $params
     * @return string
     */
-    public static function buildWhereFieldsStatement($params)
+    public static function buildWhereFieldsStatement(array $params)
     {
+        if(empty($params)) {
+            return '1';
+        }
+        
         $tokens = array();
         $keys = array_keys($params);
         
