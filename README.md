@@ -8,7 +8,7 @@ Simply require the package via composer:
 
 ```
 "require": {
-   "mistralys/application-utils": "dev-master"
+   "mistralys/application-dbhelper": "dev-master"
 }
 ```
 
