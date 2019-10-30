@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/Mistralys/application-dbhelper.svg?branch=master)](https://travis-ci.com/Mistralys/application-dbhelper)
+
 # DBHelper
 
 PHP Database abstraction layer.
