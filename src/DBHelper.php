@@ -642,24 +642,13 @@ class DBHelper
      *
      * @throws DBHelper_Exception
      * @return array
+     * @deprecated
+     * 
+     * @see DBHelper::fetchTableNames()
      */
-    public static function getTablesList()
+    public static function getTablesList() : array
     {
-        $entries = self::fetchAll('SHOW TABLES');
-        if (!$entries || !is_array($entries)) {
-            self::throwException(
-                self::ERROR_FETCHING,
-                'Failed retrieving the tables list'
-            );
-        }
-
-        $list = array();
-        foreach ($entries as $entry) {
-            $values = array_values($entry);
-            $list[] = $values[0];
-        }
-
-        return $list;
+        return self::fetchTableNames();
     }
 
     /**
@@ -1220,11 +1209,17 @@ class DBHelper
         '</pre>';
     }
 
-    public static function fetchTableNames()
+   /**
+    * Retrieves a list of all tables present in the
+    * database; Only shows the tables that the user
+    * has access to. Returns an indexed array with
+    * table names.
+    *
+    * @return string[]
+    */
+    public static function fetchTableNames() : array
     {
-        $entries = self::fetchAll(
-            "SHOW TABLES"
-        );
+        $entries = self::fetchAll("SHOW TABLES");
 
         $tables = array();
         foreach ($entries as $entry) {
