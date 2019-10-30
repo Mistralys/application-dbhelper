@@ -17,15 +17,20 @@ class DBHelper_Event
     
     protected $cancel = false;
     
-    protected $cancelReason;
+    protected $cancelReason = '';
     
-    public function __construct($name, $args=array())
+    public function __construct(string $name, $args=array())
     {
         $this->name = $name;
         $this->args = $args;
     }
     
-    public function getType()
+    public function getName() : string
+    {
+        return $this->name;
+    }
+    
+    public function getType() : ?string
     {
         return $this->getArgument(0);
     }
@@ -34,7 +39,7 @@ class DBHelper_Event
      * Retrieves all arguments of the event as an array.
      * @return mixed[]
      */
-    public function getArguments()
+    public function getArguments() : array
     {
         return $this->args;
     }
@@ -55,12 +60,12 @@ class DBHelper_Event
         return null;
     }
     
-    public function isWriteOperation()
+    public function isWriteOperation() : bool
     {
         return DBHelper_OperationTypes::isWriteOperation($this->getType());
     }
     
-    public function getStatement($formatted=false)
+    public function getStatement(bool $formatted=false)
     {
         $sql = $this->getArgument(1);
         if($formatted) {
@@ -79,12 +84,12 @@ class DBHelper_Event
      * Checks whether the event should be cancelled.
      * @return boolean
      */
-    public function isCancelled()
+    public function isCancelled() : bool
     {
         return $this->cancel;
     }
     
-    public function getCancelReason()
+    public function getCancelReason() : string
     {
         return $this->cancelReason;
     }
@@ -96,7 +101,7 @@ class DBHelper_Event
      * @param string $reason The reason for which the event was cancelled
      * @return DBHelper_Event
      */
-    public function cancel($reason)
+    public function cancel(string $reason) : DBHelper_Event
     {
         $this->cancel = true;
         $this->cancelReason = $reason;
