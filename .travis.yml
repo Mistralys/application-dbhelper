@@ -12,3 +12,4 @@ services:
 before_install:
   - mysql -e 'CREATE DATABASE IF NOT EXISTS dbhelper_tests;'
   - mysql -u root --default-character-set=utf8 dbhelper_tests < tests/assets/sql/tests.sql
+  - composer update
