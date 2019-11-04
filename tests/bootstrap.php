@@ -16,6 +16,7 @@
     require_once TESTS_ROOT.'/../vendor/autoload.php';
     
     require_once TESTS_ROOT.'/assets/classes/DBHelperTestCase.php';
+    require_once TESTS_ROOT.'/assets/classes/TestFilterCriteria.php';
     
     $localDBConfig = TESTS_ROOT.'/database-local.php';
     
@@ -30,3 +31,7 @@
         define('TESTS_DB_USER', 'root');
         define('TESTS_DB_PASS', '');
     }
+    
+    \AppLocalize\Localization::addAppLocale('de_DE');
+    
+    \AppLocalize\Localization::configure(__DIR__.'/../localization/storage.json', '');
