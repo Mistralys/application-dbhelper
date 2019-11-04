@@ -1387,7 +1387,7 @@ class DBHelper
         return $query;
     }
 
-    protected static function log($message)
+    public static function log($message)
     {
         if(isset(self::$logCallback)) {
             call_user_func(self::$logCallback, sprintf(
