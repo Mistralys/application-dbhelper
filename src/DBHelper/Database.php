@@ -1,4 +1,10 @@
 <?php
+/**
+ * File containing the {@link \AppDB\DBHelper_Database} class.
+ *
+ * @package DBHelper
+ * @see \AppDB\DBHelper_Database
+ */
 
 declare(strict_types=1);
 
@@ -7,6 +13,13 @@ namespace AppDB;
 use PDO;
 use PDOException;
 
+/**
+ * Database information container class, used to store
+ * individual database connection data.
+ *
+ * @package DBHelper
+ * @author Sebastian Mordziol <s.mordziol@mistralys.eu>
+ */
 class DBHelper_Database
 {
     const DEFAULT_PORT = 3306;

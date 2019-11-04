@@ -37,7 +37,7 @@ namespace AppDB;
  * @package DBHelper
  * @author Sebastian Mordziol <s.mordziol@mistralys.eu>
  */
-abstract class DBHelper_BaseFilterCriteria
+abstract class DBHelper_BaseFilterCriteria extends DBHelper_FilterCriteria
 {
    /**
     * @var DBHelper_BaseCollection
@@ -50,6 +50,8 @@ abstract class DBHelper_BaseFilterCriteria
     
     public function __construct(DBHelper_BaseCollection $collection)
     {
+        parent::__construct();
+        
         $this->collection = $collection;
         $this->recordTableName = $collection->getRecordTableName();
         $this->recordPrimaryName = $collection->getRecordPrimaryName();

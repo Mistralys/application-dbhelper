@@ -1,7 +1,22 @@
 <?php
+/**
+ * File containing the {@link \AppDB\DBHelper_FilterCriteria} class.
+ *
+ * @package DBHelper
+ * @see \AppDB\DBHelper_FilterCriteria
+ */
 
 namespace AppDB;
 
+/**
+ * DBHelper filter criteria class: used to specify criteria
+ * for fetching data from the database. Meant to be extended
+ * for a specific table, to offer table-specific selection
+ * possibilities.
+ *
+ * @package DBHelper
+ * @author Sebastian Mordziol <s.mordziol@mistralys.eu>
+ */
 abstract class DBHelper_FilterCriteria
 {
     const ERROR_INVALID_WHERE_STATEMENT = 710001;

@@ -1,13 +1,18 @@
 <?php
+/**
+ * File containing the {@link \AppDB\DBHelper_OperationTypes} class.
+ *
+ * @package DBHelper
+ * @see \AppDB\DBHelper_OperationTypes
+ */
 
 namespace AppDB;
 
 /**
- * Helper class that is used to keep track of database operations,
- * and retrieve information about operation types.
+ * Stores SQL operation types information to enable detection
+ * of write and read operations for event handling and more.
  *
- * @package Helpers
- * @subpackage DBHelper
+ * @package DBHelper
  * @author Sebastian Mordziol <s.mordziol@mistralys.eu>
  */
 class DBHelper_OperationTypes
@@ -84,4 +89,3 @@ class DBHelper_OperationTypes
         );
     }
 }
-

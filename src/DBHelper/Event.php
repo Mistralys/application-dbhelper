@@ -1,12 +1,17 @@
 <?php
+/**
+ * File containing the {@link \AppDB\DBHelper_Event} class.
+ *
+ * @package DBHelper
+ * @see \AppDB\DBHelper_Event
+ */
 
 namespace AppDB;
 
 /**
  * DBHelper-specific event class.
  *
- * @package Helpers
- * @subpackage DBHelper
+ * @package DBHelper
  * @author Sebastian Mordziol <s.mordziol@mistralys.eu>
  */
 class DBHelper_Event
