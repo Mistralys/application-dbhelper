@@ -2,7 +2,7 @@
 /**
  * Main bootstrapper used to set up the testsuites environment.
  * 
- * @package Application Utils
+ * @package DBHelper
  * @subpackage Tests
  * @author Sebastian Mordziol <s.mordziol@mistralys.eu>
  */
