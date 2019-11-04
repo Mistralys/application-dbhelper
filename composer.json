@@ -17,6 +17,9 @@
 		{
 			"AppDB\\" : "src/"
 		},
+		"files" : [
+		    "src/functions.php"
+		],
 		"classmap" : 
 		[
 			"src/"
