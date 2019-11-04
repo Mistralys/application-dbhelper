@@ -19,7 +19,7 @@ abstract class DBHelper_TestCase extends TestCase
         } 
         catch(DBHelper_Exception $e)
         {
-            $info = \AppUtils\ConvertHelper::exception2info($e);
+            echo \AppUtils\ConvertHelper::exception2info($e)->toString();
             echo $e->getDetails();
             
             throw $e;
@@ -28,4 +28,30 @@ abstract class DBHelper_TestCase extends TestCase
         return $db;
     }
     
+    protected $testProducts = array(
+        array('label' => 'Product one', 'price' => '100'),
+        array('label' => 'Product two', 'price' => '14.99'),
+        array('label' => 'Product three', 'price' => '60'),
+        array('label' => 'Product foo with bar', 'price' => '1000'),
+    );
+    
+    protected function insertTestData()
+    {
+        DBHelper::startTransaction();
+        
+        DBHelper::truncate('products');
+        
+        foreach($this->testProducts as $data) {
+            DBHelper::insertDynamic('products', $data);
+        }
+        
+        DBHelper::commitTransaction();
+    }
+    
+    protected function clearTestData()
+    {
+        DBHelper::startTransaction();
+        DBHelper::truncate('products');
+        DBHelper::commitTransaction();
+    }
 }
