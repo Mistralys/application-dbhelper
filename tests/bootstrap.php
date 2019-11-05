@@ -15,8 +15,14 @@
 
     require_once TESTS_ROOT.'/../vendor/autoload.php';
     
-    require_once TESTS_ROOT.'/assets/classes/DBHelperTestCase.php';
-    require_once TESTS_ROOT.'/assets/classes/TestFilterCriteria.php';
+    $testClassesFolder = TESTS_ROOT.'/assets/classes';
+    
+    $classes = \AppUtils\FileHelper::createFileFinder($testClassesFolder)
+    ->getPHPClassNames();
+    
+    foreach($classes as $name) {
+        require_once $testClassesFolder.'/'.$name.'.php';
+    }
     
     $localDBConfig = TESTS_ROOT.'/database-local.php';
     
