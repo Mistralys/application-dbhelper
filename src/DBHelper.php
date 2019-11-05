@@ -123,6 +123,13 @@ class DBHelper
     */
     protected static $cachedColumnExist = array();
     
+   /**
+    * Stores collection instances.
+    * @var array
+    * @see DBHelper::createCollection()
+    */
+    protected static $collections = array();
+    
     /**
      * Executes a query string with the specified variables. Uses
      * the PDO->prepare() method, and returns the result of the
@@ -1892,6 +1899,88 @@ class DBHelper
         {
             self::$options = self::getDefaultOptions();
         }
+    }
+
+   /**
+    * Factory method: Creates or gets the instance of a DBHelper
+    * records collection by its class name. The class must extend
+    * the {@link DBHelper_BaseCollection} class.
+    * 
+    * @param string $class
+    * @param DBHelper_BaseRecord $parentRecord In case it is a subcollection, specifies the parent record to tie the collection to.
+    * @throws DBHelper_Exception
+    * @return DBHelper_BaseCollection
+    * 
+    * @see DBHelper::ERROR_NOT_A_DBHELPER_COLLECTION
+    * @see DBHelper::ERROR_NO_PARENT_RECORD_SPECIFIED
+    * @see DBHelper::ERROR_INVALID_PARENT_RECORD
+    */
+    public static function createCollection(string $class, DBHelper_BaseRecord $parentRecord=null) : DBHelper_BaseCollection
+    {
+        $key = $class;
+        if($parentRecord) {
+            $key .= '-'.$parentRecord->getID();
+        }
+        
+        if(isset(self::$collections[$key])) {
+            return self::$collections[$key];
+        }
+        
+        $baseClass = DBHelper_BaseCollection::class;
+        
+        /* @var $instance DBHelper_BaseCollection */
+        
+        $instance = new $class();
+        
+        if(!$instance instanceof $baseClass) 
+        {
+            throw new DBHelper_Exception(
+                'Not a DBHelper collection',
+                sprintf(
+                    'Cannot use class [%s] as DBHelper collection: it does not extend the [%s] class.',
+                    $class,
+                    $baseClass
+                ),
+                self::ERROR_NOT_A_DBHELPER_COLLECTION
+            );
+        }
+        
+        if($instance->hasParentCollection())
+        {
+            if(!$parentRecord) 
+            {
+                throw new DBHelper_Exception(
+                    'No parent record specified',
+                    sprintf(
+                        'The DBHelper collection class [%s] requires a parent record to be specified when calling createCollection.',
+                        $class
+                    ),
+                    self::ERROR_NO_PARENT_RECORD_SPECIFIED
+                );
+            }
+            
+            $parentClass = get_class($parentRecord->getCollection());
+            
+            if($parentClass != $instance->getParentCollectionClass()) 
+            {
+                throw new DBHelper_Exception(
+                    'Invalid parent record',
+                    sprintf(
+                        'The DBHelper collection class [%s] requires a parent record of the collection [%s], provided was a record of type [%s].',
+                        $class,
+                        $instance->getParentCollectionClass(),
+                        get_class($parentRecord->getCollection())
+                    ),
+                    self::ERROR_INVALID_PARENT_RECORD
+                );
+            }
+            
+            $instance->bindParentRecord($parentRecord);
+        }
+        
+        self::$collections[$key] = $instance;
+        
+        return $instance;
     }
 }
     
