@@ -63,6 +63,13 @@ abstract class DBHelper_BaseCollection
     
     abstract public function getRecordLabel();
     
+   /**
+    * Retrieves the available properties of the record as an
+    * associative array with columnm name > human readable label
+    * pairs.
+    * 
+    * @return array
+    */
     abstract public function getRecordProperties();
     
     public function getRecordDefaultSortDir()
@@ -107,6 +114,8 @@ abstract class DBHelper_BaseCollection
     */    
     protected $request;
     
+    protected static $instanceCounter = 0;
+    
    /**
     * NOTE: classes extending this class may not create
     * constructors with parameters. The interface must
@@ -114,7 +123,7 @@ abstract class DBHelper_BaseCollection
     */
     public function __construct()
     {
-        $this->instanceID = nextJSID();
+        $this->instanceID = self::$instanceCounter++;
         $this->recordClassName = $this->getRecordClassName();
         $this->recordSortDir = $this->getRecordDefaultSortDir();
         $this->recordSortKey = $this->getRecordDefaultSortKey();
