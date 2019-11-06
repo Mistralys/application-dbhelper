@@ -125,7 +125,7 @@ final class BaseCollectionTest extends DBHelper_TestCase
         
         $filters = $collection->getFilterCriteria();
         
-        $this->assertInstanceOf(TestFilterCriteria::class, $filters);
+        $this->assertInstanceOf(TestBaseFilterCriteria::class, $filters);
     }
     
    /**

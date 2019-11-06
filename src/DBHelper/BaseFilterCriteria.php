@@ -66,7 +66,7 @@ abstract class DBHelper_BaseFilterCriteria extends DBHelper_FilterCriteria
         
     }
     
-    protected function getSearchFields()
+    protected function getSearchFields() : array
     {
         $fields = $this->collection->getRecordSearchableKeys();
         $result = array();
@@ -122,7 +122,7 @@ abstract class DBHelper_BaseFilterCriteria extends DBHelper_FilterCriteria
         );
     }
     
-    protected function getSelect()
+    protected function getSelect() : array
     {
         return array(
             sprintf(

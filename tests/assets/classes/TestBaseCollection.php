@@ -44,7 +44,7 @@ class TestBaseCollection extends \AppDB\DBHelper_BaseCollection
 
     public function getRecordFiltersClassName()
     {
-        return TestFilterCriteria::class;
+        return TestBaseFilterCriteria::class;
     }
 
     public function getRecordTypeName()
