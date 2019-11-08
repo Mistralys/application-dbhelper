@@ -240,7 +240,7 @@ abstract class DBHelper_BaseRecord
     * @param boolean $yesno Whether to use the "yes/no" notation. Otherwise "true/false" is used.
     * @return boolean Whether the value has changed.
     */
-    public function setRecordBooleanKey($name, $boolean, $yesno=true)
+    public function setRecordBooleanKey(string $name, $boolean, bool $yesno=true)
     {
         $value = \AppUtils\ConvertHelper::bool2string($boolean, $yesno);
         return $this->setRecordKey($name, $value);
