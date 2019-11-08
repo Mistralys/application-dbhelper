@@ -39,6 +39,14 @@ abstract class DBHelper_BaseRecord
     */
     protected $collection;
     
+    protected $recordKeys;
+    
+   /**
+    * Stores names of keys that were modified.
+    * @var string[]
+    */
+    protected $modifiedKeys = array();
+    
     public function __construct($primary_id, DBHelper_BaseCollection $collection)
     {
         $this->collection = $collection;
@@ -121,7 +129,7 @@ abstract class DBHelper_BaseRecord
     * 
     * @return boolean
     */
-    public function isDummy()
+    public function isDummy() : bool
     {
         return $this->isDummy;
     }
@@ -135,26 +143,9 @@ abstract class DBHelper_BaseRecord
         return $this->collection;
     }
     
-    protected $recordKeys;
-    
-    public function countComtypes()
+    public function getID() : int
     {
-        return DBHelper::fetchCount(
-            "SELECT
-                COUNT(`comtype_id`) AS `count`
-            FROM
-                `comtypes_variables`
-            WHERE
-                `oms_variable_id`=:oms_variable_id",
-            array(
-                'oms_variable_id' => $this->getID()
-            )
-        );
-    }
-    
-    public function getID()
-    {
-        return $this->getRecordKey($this->recordPrimaryName);
+        return $this->getRecordIntKey($this->recordPrimaryName);
     }
         
     public function getRecordKey($name, $default=null)
@@ -172,9 +163,9 @@ abstract class DBHelper_BaseRecord
     * 
     * @param string $name
     * @param int $default
-    * @return int|NULL
+    * @return int
     */
-    public function getRecordIntKey(string $name, int $default=null) : ?int
+    public function getRecordIntKey(string $name, int $default=0) : int
     {
         $value = $this->getRecordKey($name);
         if($value !== null && $value !== '') {
@@ -207,7 +198,7 @@ abstract class DBHelper_BaseRecord
     * @param \DateTime $default
     * @return \DateTime|NULL
     */
-    public function getRecordDateKey(string $name, \DateTime $default=null) : ?\DateTime
+    public function getRecordDateKey(string $name, ?\DateTime $default=null) : ?\DateTime
     {
         $value = $this->getRecordKey($name);
         if($value !== null) {
@@ -225,7 +216,7 @@ abstract class DBHelper_BaseRecord
     * @param boolean $default
     * @return boolean
     */
-    protected function getRecordBooleanKey($name, $default=false) : bool
+    public function getRecordBooleanKey(string $name, bool $default=false) : bool
     {
         $value = $this->getRecordKey($name, $default);
         if($value===null) {
@@ -235,12 +226,10 @@ abstract class DBHelper_BaseRecord
         return \AppUtils\ConvertHelper::string2bool($value);
     }
     
-    protected function recordKeyExists($name)
+    protected function recordKeyExists(string $name) : bool
     {
         return in_array($name, $this->recordKeys);
     }
-    
-    protected $modified = array();
     
    /**
     * Converts a boolean value to its string representation to use
@@ -281,8 +270,8 @@ abstract class DBHelper_BaseRecord
         
         $this->recordData[$name] = $value;
         
-        if(!in_array($name, $this->modified)) {
-            $this->modified[] = $name;
+        if(!in_array($name, $this->modifiedKeys)) {
+            $this->modifiedKeys[] = $name;
             if(isset($this->registeredKeys[$name])) {
                 $this->recordRegisteredKeyModified(
                     $name, 
@@ -329,19 +318,19 @@ abstract class DBHelper_BaseRecord
         }
         
         if(!empty($key) && $this->requireKey($key)) {
-            return in_array($key, $this->modified);
+            return in_array($key, $this->modifiedKeys);
         }
         
-        return !empty($this->modified);
+        return !empty($this->modifiedKeys);
     }
     
    /**
     * Retrieves the names of all keys that have been modified since the last save.
     * @return string[]
     */
-    public function getModifiedKeys()
+    public function getModifiedKeys() : array
     {
-        return $this->modified;
+        return $this->modifiedKeys;
     }
     
    /**
@@ -393,7 +382,7 @@ abstract class DBHelper_BaseRecord
         
         DBHelper::update($query, $data);
         
-        $this->modified = array();
+        $this->modifiedKeys = array();
         
         return true;
     }
