@@ -1815,6 +1815,7 @@ class DBHelper
         self::$activeQuery = null;
         self::$startTime = null;
         self::$options = null;
+        self::$collections = array();
     }
     
     protected static function getDefaultOptions()
