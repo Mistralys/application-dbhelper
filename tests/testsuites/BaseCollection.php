@@ -9,23 +9,12 @@ final class BaseCollectionTest extends DBHelper_TestCase
 {
     protected function setUp() : void
     {
-        \AppLocalize\Localization::selectAppLocale('en_UK');
-        
-        DBHelper::reset();
-        
-        $this->configureTestDatabase();
-        
         $this->insertTestData();
     }
     
     protected function tearDown() : void
     {
         $this->clearTestData();
-    }
-    
-    protected function createCollection() : TestBaseCollection
-    {
-        return DBHelper::createCollection(TestBaseCollection::class);
     }
     
    /**
@@ -104,9 +93,7 @@ final class BaseCollectionTest extends DBHelper_TestCase
     public function test_getByID()
     {
         // fetch any of the product IDs from the database
-        $id = DBHelper::fetchKey('product_id', "SELECT product_id FROM products");
-        
-        $this->assertNotEmpty($id);
+        $id = $this->getRecordID();
         
         $collection = $this->createCollection();
         
@@ -134,7 +121,7 @@ final class BaseCollectionTest extends DBHelper_TestCase
     public function test_idExists()
     {
         // fetch any of the product IDs from the database
-        $id = DBHelper::fetchKey('product_id', "SELECT product_id FROM products");
+        $id = $this->getRecordID();
         
         $collection = $this->createCollection();
         
@@ -148,7 +135,7 @@ final class BaseCollectionTest extends DBHelper_TestCase
     public function test_getByRequest()
     {
         // fetch any of the product IDs from the database
-        $id = DBHelper::fetchKey('product_id', "SELECT product_id FROM products");
+        $id = $this->getRecordID();
         
         $collection = $this->createCollection();
         

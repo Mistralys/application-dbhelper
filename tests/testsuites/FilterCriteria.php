@@ -9,12 +9,6 @@ final class FilterCriteriaTest extends DBHelper_TestCase
 {
     protected function setUp() : void
     {
-        \AppLocalize\Localization::selectAppLocale('en_UK');
-        
-        DBHelper::reset();
-        
-        $this->configureTestDatabase();
-        
         $this->insertTestData();
     }
     
